@@ -1,47 +1,44 @@
 version: 2.1
 orbs:
-  node: circleci/node@4.2.0
-  aws-cli: circleci/aws-cli@2.0.0
+  node: circleci/node@4.7.0
+  eb: circleci/aws-elastic-beanstalk@2.0.1
+  aws-cli: circleci/aws-cli@2.0.3
 jobs:
-  frontend:
-    working_directory: ~/app/udagram-frontend
-    executor: node/default
+  build:
+    docker:
+      - image: "cimg/base:stable"
     steps:
-      - checkout:
-          path: ~/app
-      - node/install-packages:
-          app-dir: ~/app/udagram-frontend
+      - node/install:
+          node-version: 14.19.0
+      - checkout
+      - aws-cli/setup
+      - eb/setup
       - run:
-          name: Build Frontend
-          command: npm run build
-      - aws-cli/install
+          name: Front-End Install
+          command: |
+            npm run frontend:install
       - run:
-          name: Deploy Frontend
-          command: aws s3 cp --recursive --acl public-read ./www $S3_BUCKET_FRONTEND
-  server:
-    working_directory: ~/app/udagram-api
-    executor: node/default
-    steps:
-      - checkout:
-          path: ~/app
-      - node/install-packages:
-          app-dir: ~/app/udagram-api
+          name: Back-End Install
+          command: |
+            npm run backend:install
       - run:
-          name: Build and Archive Server
-          command: |-
-            npm run build
-            printenv > www/.env
-            npm run archive
-      - aws-cli/install
+          name: Front-End Build
+          command: |
+            npm run frontend:build
       - run:
-          name: Deploy Server
-          command: |-
-            aws s3 cp ./www/Archive.zip $S3_BUCKET_SERVER
-            aws elasticbeanstalk create-application-version --application-name $EB_APP --version-label <<pipeline.git.revision>> --source-bundle S3Bucket="$EB_BUCKET",S3Key="Archive.zip"
-            aws elasticbeanstalk update-environment --application-name $EB_APP --environment-name $EB_ENV --version-label <<pipeline.git.revision>>
-
+          name: Back-End Build
+          command: |
+            npm run backend:build
+      - run:
+          name: Back-End Deploy
+          command: npm run backend:deploy
+      - run:
+          name: Front-End Deploy
+          command: npm run frontend:deploy
 workflows:
-  build_and_deploy:
+  build-deploy:
     jobs:
-      - frontend
-      - server
+      - build:
+          filters:
+            branches:
+              only: main
