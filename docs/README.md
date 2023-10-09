@@ -2,9 +2,9 @@
 ### Dependencies
 
 ```
-- Node v18.18.0 (LTS) or more recent.
+- Node v14.15.1 (LTS) or more recent.
 
-- npm 9.8.1 (LTS) or more recent, Yarn can work for this project
+- npm 6.14.8 (LTS) or more recent, Yarn can work for this project
 
 - AWS EB CLI
 
